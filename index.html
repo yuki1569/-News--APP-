@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <title>NewsAPI Sample</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+  <link rel="stylesheet" href="bootstrap_css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+  
+
+  <style>
+    body {
+      text-align: center;
+    }
+
+    #loader-bg {
+      display: none;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0px;
+      left: 0px;
+      background: rgb(250, 242, 242);
+      z-index: 8;
+    }
+
+    #loader {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 200px;
+      height: 200px;
+      margin-top: -100px;
+      margin-left: -100px;
+      text-align: center;
+      color: #fff;
+      z-index: 2;
+      font-size: 50px;
+      color: black;
+    }
+
+    #newsList {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+    }
+
+    #newsList img {
+      width: 200px;
+      height: 150px;
+    }
+
+    #newsList-delete {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+    }
+
+    #newsList-delete img {
+      width: 200px;
+      height: 150px;
+    }
+
+    .content {
+      margin-top: 20px;
+      width: 200px;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+
+    .content a {
+      text-decoration: none;
+      color: rgb(87, 83, 83);
+      width: 80%;
+    }
+
+    .content a>img {
+      width: 80%;
+    }
+
+    .panel {
+      display: flex;
+      justify-content: center;
+      border-bottom: 1px solid black;
+      text-decoration: none;
+
+    }
+
+    /* #newsPanel a {
+      line-height: ;
+    } */
+
+    .panel img {
+      padding-top: 20px;
+      width: 80%;
+
+    }
+
+    .contentPanel {
+      width: 900px;
+      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      text-decoration: none;
+
+    }
+
+    .right {
+      font-size: 40px;
+      cursor: pointer;
+    }
+
+    .left {
+      font-size: 40px;
+      cursor: pointer;
+    }
+
+    .hide {
+      display: none;
+    }
+
+    .show {
+      display: bottom;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loader-bg">
+    <div id="loader">
+
+      <p>News APP.</p>
+    </div>
+  </div>
+
+
+    <h1>News　APP</h1>
+    <ul style=" position: fixed;bottom: 0; width: 100%; background-color: #ffffff;" class="nav nav-tabs nav-justified"
+      role="tablist">
+
+      <li class="nav-item">
+        <a style="font-size: 30px;" class="nav-link active" id="item1-tab" data-toggle="tab" href="#item1" role="tab"
+          aria-controls="item1" aria-selected="true">💛</a>
+      </li>
+
+      <li class="nav-item">
+        <a style="font-size: 30px;" class="nav-link" id="item2-tab" data-toggle="tab" href="#item2" role="tab"
+          aria-controls="item2" aria-selected="false">🔍</a>
+      </li>
+
+      <li class="nav-item">
+        <a style="font-size: 30px;" class="nav-link" id="item3-tab" data-toggle="tab" href="#item3" role="tab"
+          aria-controls="item3" aria-selected="false">🚮</a>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="item1" role="tabpanel" aria-labelledby="item1-tab">
+        <!-- //ここにニュースの一覧を表示する -->
+        <div id="newsList"></div>
+        <div style="margin-bottom:50px;"></div>
+      </div>
+
+      <div class="tab-pane fade" id="item2" role="tabpanel" aria-labelledby="item2-tab">
+        <div id="newsPanel" class="panel"></div>
+        <div id="newsPanel2" class="panel"></div>
+        <div id="newsPanel3" class="panel"></div>
+        <div style="margin-bottom:50px;"></div>
+      </div>
+
+
+      <div class="tab-pane fade" id="item3" role="tabpanel" aria-labelledby="item3-tab">
+        <div id="newsList-delete"></div>
+      </div>
+
+    </div>
+
+
+
+    <footer>
+      <small>powered by <a href="https://newsapi.org">NewsAPI.org</a></small>
+    </footer>
+  <script>
+    
+    $(function () {
+      var h = $(window).height();
+
+      $('#wrap').css('display', 'none');
+      $('#loader-bg ,#loader').height(h).css('display', 'block');
+    });
+
+    //1.5秒たったら強制的にロード画面を非表示
+    $(function () {
+      setTimeout('stopload()', 1500);
+    });
+    function stopload() {
+      $('#wrap').css('display', 'block');
+      $('#loader-bg').delay(900).fadeOut(800);
+      $('#loader').delay(600).fadeOut(300);
+    }
+
+    const newsPanel = document.getElementById('newsPanel');
+    const newsPanel2 = document.getElementById('newsPanel2');
+    const newsPanel3 = document.getElementById('newsPanel3');
+    const newslist = document.getElementById('newsList');
+
+    let i = 0;
+    //サーバーにアクセスしてNode.jsで取得したニュースデータを得る
+    Promise.resolve()
+      .then(function () {
+        return new Promise(function (resolve, reject) {
+
+          fetch('/data')
+            .then(data => data.json())
+            .then(json => {
+              json['articles']
+              setTimeout(() => {
+                console.log(json['articles'][0])
+                  , 500
+              });
+
+              let length = json['articles'].length;
+              let random = Math.floor(Math.random() * length + 1);
+
+              // const ranindex = [];
+              // for(let u = 0; u < length; u++) {
+              //   ranindex[u] = json['articles'].splice(Math.floor(Math.random() * length), 1);
+              // }
+              // console.log(ranindex);
+
+              for (i = 0; i < json['articles'].length; i++) {
+                createContents(json['articles'][i]);
+
+              }
+            });
+
+          //取得したニュースデータからタイトル・画像・URLを1つにまとめて表示する
+          function createContents(item) {
+            const panel = document.createElement('div');
+
+            //記事画像が無い場合を考慮して別の画像に差し替える処理も追記すると良いかも
+            //const image = item.urlToImage || 'sample.jpg';
+
+
+            if (i == 0) {
+              panel.classList.add('contentPanel');
+              panel.innerHTML = `
+        <a class="left">💀</a>
+        <div>
+          <a href="${item.url}">
+            <img src="${item.urlToImage}">
+            <p>${item.title}</p>
+            <span  >${item.publishedAt}</span>
+          </a>
+        </div>
+        <a class="right"
+          data-url="${item.url}"
+          data-image="${item.urlToImage}"
+          data-title="${item.title}"
+          data-daytime="${item.publishedAt}"
+          >👍</a>
+        <span value=${[item.publishedAt]}></span>`;
+
+            } else {
+              panel.classList.add('contentPanel');
+              panel.classList.add('hide');
+              panel.innerHTML = `
+        <a class="left">💀</a>
+        <div>
+          <a href="${item.url}">
+            <img src="${item.urlToImage}">
+            <p>${item.title}</p>
+            <span  >${item.publishedAt}</span>
+          </a>
+        </div>
+        <a class="right"
+          data-url="${item.url}"
+          data-image="${item.urlToImage}"
+          data-title="${item.title}"
+          data-daytime="${item.publishedAt}"
+          >👍</a>
+          <span value=${[item.publishedAt]}></span>`;
+
+            }
+
+            newsPanel.appendChild(panel);
+
+          }
+          $("body").on('click', ".left", function () {
+            $(this).parent().addClass("hide");
+            $(this).parent().next().removeClass("hide");
+            $(this).parent()
+          });
+          $("body").on('click', ".right", function () {
+            $(this).parent().addClass("hide");
+            $(this).parent().next().removeClass("hide");
+            $(this).parent()
+            // localStorage.setItem('bookmark').set({
+            //   []: [$(this).parent()]
+            // }, { merge: true });
+            console.log($(this).val());
+            const datenow = new Date();
+            var month = datenow.getMonth() + 1;
+            var date = datenow.getDate();
+            var hour = datenow.getHours();
+            var min = datenow.getMinutes();
+            var sec = datenow.getSeconds();
+            var now = `${month}/${date} ${hour}:${min}:${sec}`
+            var data = { url: "", image: "", title: "", daytime: "" };
+            console.log($(this).data('url'));
+            console.log($(this).data('image'));
+            console.log($(this).data('title'));
+            console.log($(this).data('daytime'));
+            data.url = $(this).data('url');
+            data.image = $(this).data('image');
+            data.title = $(this).data('title');
+            data.daytime = $(this).data('daytime');
+
+            $("#newsList").append(`
+        <div class="content shadow" >
+          <a class="delete" data-key="${now}">×</a>
+            <a href="${data.url}">
+              <img src="${data.image}">
+              <p>${data.title}</p>
+              <a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-url="${data.url}" data-text="News APPだよ" data-show-count="false">Tweet</a>
+            </a>
+          </div>`);
+
+            console.log(data);
+            // localStorage.clear();
+            localStorage.setItem(now, JSON.stringify(data));
+          });
+          resolve();
+        });
+      })
+
+
+      //////////////////////////////////////////////////////////////////////////////////
+      .then(function (value) {
+        return new Promise(function (resolve, reject) {
+
+          fetch('/data2')
+            .then(data => data.json())
+            .then(json => {
+              json['articles']
+              setTimeout(() => {
+                console.log(json['articles'][0])
+                  , 500
+              });
+
+              let length = json['articles'].length;
+              let random = Math.floor(Math.random() * length + 1);
+
+              // const ranindex = [];
+              // for(let u = 0; u < length; u++) {
+              //   ranindex[u] = json['articles'].splice(Math.floor(Math.random() * length), 1);
+              // }
+              // console.log(ranindex);
+
+              for (i = 0; i < json['articles'].length; i++) {
+                createContents(json['articles'][i]);
+
+              }
+            });
+
+
+          //取得したニュースデータからタイトル・画像・URLを1つにまとめて表示する
+          function createContents(item) {
+            const panel = document.createElement('div');
+
+            //記事画像が無い場合を考慮して別の画像に差し替える処理も追記すると良いかも
+            //const image = item.urlToImage || 'sample.jpg';
+            if (i == 0) {
+              panel.classList.add('contentPanel');
+              panel.innerHTML = `
+        <a class="left">💀</a>
+        <div>
+          <a href="${item.url}">
+            <img src="${item.urlToImage}">
+            <p>${item.title}</p>
+            <span  >${item.publishedAt}</span>
+            </a>
+            </div>
+            <a class="right"
+            data-url="${item.url}"
+            data-image="${item.urlToImage}"
+            data-title="${item.title}"
+            data-daytime="${item.publishedAt}"
+            >👍</a>
+            <span value=${[item.publishedAt]}></span>`;
+
+            } else {
+              panel.classList.add('contentPanel');
+              panel.classList.add('hide');
+              panel.innerHTML = `
+        <a class="left">💀</a>
+        <div>
+          <a href="${item.url}">
+            <img src="${item.urlToImage}">
+            <p>${item.title}</p>
+            <span  >${item.publishedAt}</span>
+            </a>
+            </div>
+            <a class="right"
+            data-url="${item.url}"
+            data-image="${item.urlToImage}"
+            data-title="${item.title}"
+            data-daytime="${item.publishedAt}"
+            >👍</a>
+            <span value=${[item.publishedAt]}></span>`;
+
+            }
+
+            newsPanel2.appendChild(panel);
+
+          }
+          $("body").on('click', ".left", function () {
+            $(this).parent().addClass("hide");
+            $(this).parent().next().removeClass("hide");
+            $(this).parent()
+          });
+
+          resolve();
+        });
+      })
+      //////////////////////////////////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////////////////////////////
+      .then(function (value) {
+        return new Promise(function (resolve, reject) {
+
+          fetch('/data3')
+            .then(data => data.json())
+            .then(json => {
+              json['articles']
+              setTimeout(() => {
+                console.log(json['articles'][0])
+                  , 500
+              });
+
+              let length = json['articles'].length;
+              let random = Math.floor(Math.random() * length + 1);
+
+              // const ranindex = [];
+              // for(let u = 0; u < length; u++) {
+              //   ranindex[u] = json['articles'].splice(Math.floor(Math.random() * length), 1);
+              // }
+              // console.log(ranindex);
+
+              for (i = 0; i < json['articles'].length; i++) {
+                createContents(json['articles'][i]);
+
+              }
+            });
+
+
+          //取得したニュースデータからタイトル・画像・URLを1つにまとめて表示する
+          function createContents(item) {
+            const panel = document.createElement('div');
+
+            //記事画像が無い場合を考慮して別の画像に差し替える処理も追記すると良いかも
+            //const image = item.urlToImage || 'sample.jpg';
+            if (i == 0) {
+              panel.classList.add('contentPanel');
+              panel.innerHTML = `
+        <a class="left">💀</a>
+        <div>
+          <a href="${item.url}">
+            <img src="${item.urlToImage}">
+            <p>${item.title}</p>
+            <span  >${item.publishedAt}</span>
+            </a>
+            </div>
+            <a class="right"
+            data-url="${item.url}"
+            data-image="${item.urlToImage}"
+            data-title="${item.title}"
+            data-daytime="${item.publishedAt}"
+            >👍</a>
+            <span value=${[item.publishedAt]}></span>`;
+
+            } else {
+              panel.classList.add('contentPanel');
+              panel.classList.add('hide');
+              panel.innerHTML = `
+        <a class="left">💀</a>
+        <div>
+          <a href="${item.url}">
+            <img src="${item.urlToImage}">
+            <p>${item.title}</p>
+            <span  >${item.publishedAt}</span>
+            </a>
+            </div>
+            <a class="right"
+            data-url="${item.url}"
+            data-image="${item.urlToImage}"
+            data-title="${item.title}"
+            data-daytime="${item.publishedAt}"
+            >👍</a>
+            <span value=${[item.publishedAt]}></span>`;
+
+            }
+
+            newsPanel3.appendChild(panel);
+
+          }
+          $("body").on('click', ".left", function () {
+            $(this).parent().addClass("hide");
+            $(this).parent().next().removeClass("hide");
+            $(this).parent()
+          });
+
+
+        });
+      })
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    // localStorage.get('')
+    let column = [];
+    let keycolumn = [];
+    Promise.resolve()
+      .then(function () {
+        return new Promise(function (resolve, reject) {
+
+          //データの取得がはやいらしいObject.keys
+          let u = 0;
+          Object.keys(localStorage).forEach(function (key) {
+            console.log(key);
+            const jsonData = localStorage.getItem(key);
+            const data = JSON.parse(jsonData);
+            column.push(data);
+            console.log(column);
+
+            column[u]['key'] = key;
+            u++;
+            //  keycolumn.push(key);
+          });
+
+          //  for (var key in localStorage) {
+          //    const jsonData = localStorage.getItem(key);
+          //    const data = JSON.parse(jsonData);
+          //    column.push(data);
+          //    console.log(column);
+          //     // localStorage.get(key)
+          //   }
+
+          resolve();
+        });
+      })
+
+      .then(function (value) {
+        return new Promise(function (resolve, reject) {
+          setTimeout(() => {
+            const div = document.createElement('div');
+            div.classList.add('content');
+
+            for (let b = 0; b < column.length; b++) {
+              $("#newsList").append(`
+          <div class="content shadow" >
+            <a class="delete" data-key="${column[b].key}">×</a>
+            <a href="${column[b].url}">
+              <img src="${column[b].image}">
+              <p>${column[b].title}</p>
+            </a>
+            <a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-url="${column[b].url}" data-text="News APPだよ" data-show-count="false">Tweet</a>
+          </div>`);
+            }
+          }, 300);
+        });
+      })
+
+    $("body").on('click', '.delete', function () {
+      $(this).parent('.content').prependTo("#newsList-delete");
+      // $(this).parent().addClass("hide");
+      setTimeout(() => {
+        console.log($(this).data('key'));
+        localStorage.removeItem($(this).data('key'));
+      }, 500);
+    });
+
+
+  </script>
+  <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+    integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+    crossorigin="anonymous"></script>
+  <script src="bootstrap_js/bootstrap.min.js"></script>
+
+
+
+</body>
+
+</html>
